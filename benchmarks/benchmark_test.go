@@ -11,7 +11,7 @@ import (
 
 type query struct {
 	domain string
-	found bool
+	found  bool
 }
 
 // one tmpdir to rule them all
@@ -19,34 +19,34 @@ var tmpdir string
 
 var queries = []query{
 	// near the top of the list
-	{ domain: "google.com", found: true },
-	{ domain: "amazon.com", found: true },
-	{ domain: "netflix.com", found: true },
+	{domain: "google.com", found: true},
+	{domain: "amazon.com", found: true},
+	{domain: "netflix.com", found: true},
 
 	// middle of list
-	{ domain: "www.missmoss.co.za", found: true },
-	{ domain: "www.mmsend30.com", found: true },
-	{ domain: "www.monat.mx", found: true },
+	{domain: "www.missmoss.co.za", found: true},
+	{domain: "www.mmsend30.com", found: true},
+	{domain: "www.monat.mx", found: true},
 
 	// very bottom of list
-	{ domain: "www.price4limo.com", found: true },
-	{ domain: "www.probuilder.com", found: true },
-	{ domain: "www.professorshouse.com", found: true },
+	{domain: "www.price4limo.com", found: true},
+	{domain: "www.probuilder.com", found: true},
+	{domain: "www.professorshouse.com", found: true},
 
 	// subdomains of listed domains
-	{ domain: "ads.google.com", found: true },
-	{ domain: "subnet.netflix.com", found: true },
-	{ domain: "things.www.monat.mx", found: true },
-	{ domain: "test.www.mmsend30.com", found: true },
-	{ domain: "thisisnotasubdomain.google.com", found: true },
-	{ domain: "nowaythisisfoundasadomain.www.professorshouse.com", found: true },
+	{domain: "ads.google.com", found: true},
+	{domain: "subnet.netflix.com", found: true},
+	{domain: "things.www.monat.mx", found: true},
+	{domain: "test.www.mmsend30.com", found: true},
+	{domain: "thisisnotasubdomain.google.com", found: true},
+	{domain: "nowaythisisfoundasadomain.www.professorshouse.com", found: true},
 
 	// domains not in list
-	{ domain: "gudgeon.com", found: false },
-	{ domain: "gyip.io", found: false },
-	{ domain: "testdomainthatisntfound.com", found: false },
-	{ domain: "homeagainhomeagain.com", found: false },
-	{ domain: "w.com", found: false },
+	{domain: "gudgeon.com", found: false},
+	{domain: "gyip.io", found: false},
+	{domain: "testdomainthatisntfound.com", found: false},
+	{domain: "homeagainhomeagain.com", found: false},
+	{domain: "w.com", found: false},
 }
 
 func PrintMemUsage(msg string, b *testing.B) {
@@ -57,20 +57,20 @@ func PrintMemUsage(msg string, b *testing.B) {
 }
 
 func bToMb(b uint64) uint64 {
-    return b / 1024 / 1024
+	return b / 1024 / 1024
 }
 
 func getType(myvar interface{}) string {
-    if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
-        return t.Elem().Name()
-    } else {
-        return t.Name()
-    }
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }
 
 func test(bench Benchmark, b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		q := queries[i % len(queries)]
+		q := queries[i%len(queries)]
 		result, err := bench.Test(q.domain)
 		if err != nil {
 			b.Logf("Error during benchmark << %s >>, abort: %s", bench.Id(), err)
@@ -152,7 +152,7 @@ func BenchmarkKeepHash(b *testing.B) {
 	benchmark(bench, b)
 }
 
-func BenchmarkSQLStore(b *testing.B) {
+func BenchmarkSQLiteStore(b *testing.B) {
 	bench := new(sqlstore)
 	benchmark(bench, b)
 }

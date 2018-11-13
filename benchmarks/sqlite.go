@@ -1,44 +1,46 @@
 package benchmarks
 
 import (
-  	"database/sql"
- 	"io/ioutil"
- 	"os"
- 	"path"
- 	"strings"
+	"database/sql"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
 
-    _ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type sqlstore struct {
 	file string
-	db *sql.DB
+	db   *sql.DB
 
 	insertCacheStmtSize int
-	insertCacheStmt *sql.Stmt
+	insertCacheStmt     *sql.Stmt
 
 	stmt *sql.Stmt
 }
 
 const (
-	//insertValueSize * batch_size should never be greater than OR EQUSL TO 1000
+	//insertValueSize * batch_size should never be greater than OR EQUAL TO SQLITE_MAX_VARIABLE_NUMBER (999)
 	batch_size = 498
 
-	insertStmt = "INSERT OR IGNORE INTO rules (rule, groups) VALUES "
-	insertValues = "(?, ?)"
+	schemaStmt      = "CREATE TABLE IF NOT EXISTS rules ( rule VARCHAR UNIQUE, groups VARCHAR )"
+	idxStmt         = "CREATE INDEX IF NOT EXISTS rule_idx ON rules (rule)"
+	insertStmt      = "INSERT OR IGNORE INTO rules (rule, groups) VALUES "
+	insertValues    = "(?, ?)"
 	insertValueSize = 2
 
 	searchQuery = "SELECT rule FROM rules WHERE rule in (?, ?) LIMIT 1;"
 )
 
 func (sqlstore *sqlstore) Id() string {
-	return "sql: '" + sqlstore.file + "'"
+	return "sqlite: '" + sqlstore.file + "'"
 }
 
 func (sqlstore *sqlstore) insert(db *sql.DB, tx *sql.Tx, rules []string) error {
 	// build value-statement if the size of the value statement has changed (or non-existant)
 	if sqlstore.insertCacheStmt == nil || sqlstore.insertCacheStmtSize != len(rules) {
-		s := insertStmt + insertValues + strings.Repeat(", " + insertValues, len(rules) - 1)
+		s := insertStmt + insertValues + strings.Repeat(", "+insertValues, len(rules)-1)
 
 		stmt, err := db.Prepare(s)
 		if err != nil {
@@ -49,8 +51,8 @@ func (sqlstore *sqlstore) insert(db *sql.DB, tx *sql.Tx, rules []string) error {
 		sqlstore.insertCacheStmt = stmt
 		sqlstore.insertCacheStmtSize = len(rules)
 	}
-	
-	args := make([]interface{}, len(rules) * insertValueSize)
+
+	args := make([]interface{}, len(rules)*insertValueSize)
 	ridx := 0
 	for idx := 0; idx < len(args); idx += insertValueSize {
 		args[idx] = rules[ridx]
@@ -68,7 +70,7 @@ func (sqlstore *sqlstore) insert(db *sql.DB, tx *sql.Tx, rules []string) error {
 
 func (sqlstore *sqlstore) openRODB(dbpath string) error {
 	// open read-only db
-	db, err := sql.Open("sqlite3", dbpath + "?cache=shared&_sync=OFF&_mutex=NO&_locking=NORMAL&_journal=OFF&_query_only=true")
+	db, err := sql.Open("sqlite3", dbpath+"?cache=shared&_sync=OFF&_mutex=NO&_locking=NORMAL&_journal=OFF&_query_only=true")
 	if err != nil {
 		return err
 	}
@@ -79,14 +81,14 @@ func (sqlstore *sqlstore) openRODB(dbpath string) error {
 
 func (sqlstore *sqlstore) loadDB(array []string, dbpath string) error {
 	// open db
-	db, err := sql.Open("sqlite3", dbpath + "?_sync=OFF&_mutex=NO&_locking=NORMAL&_journal=MEMORY")
+	db, err := sql.Open("sqlite3", dbpath+"?_sync=OFF&_mutex=NO&_locking=NORMAL&_journal=MEMORY")
 	if err != nil {
 		return err
 	}
 	sqlstore.file = dbpath
 
 	// create table
-	stmt, _ := db.Prepare("CREATE TABLE IF NOT EXISTS rules ( rule VARCHAR UNIQUE, groups VARCHAR )")
+	stmt, _ := db.Prepare(schemaStmt)
 	stmt.Exec()
 
 	// batch inserts inside one big transaction
@@ -98,7 +100,7 @@ func (sqlstore *sqlstore) loadDB(array []string, dbpath string) error {
 		end = idx + batch_size
 		if end > len(array) {
 			end = len(array)
-		}		
+		}
 		err = sqlstore.insert(db, tx, array[idx:end])
 		if err != nil {
 			tx.Rollback()
@@ -110,11 +112,7 @@ func (sqlstore *sqlstore) loadDB(array []string, dbpath string) error {
 	tx.Commit()
 
 	// add index to rule column
-	stmt, _ = db.Prepare("CREATE INDEX IF NOT EXISTS rule_idx ON rules (rule)")
-	stmt.Exec()
-
-	// force vaccum tables
-	stmt, _ = db.Prepare("VACUUM")
+	stmt, _ = db.Prepare(idxStmt)
 	stmt.Exec()
 
 	// close old db
@@ -123,7 +121,7 @@ func (sqlstore *sqlstore) loadDB(array []string, dbpath string) error {
 	// open read-only db
 	sqlstore.openRODB(dbpath)
 
-	return nil	
+	return nil
 }
 
 func (sqlstore *sqlstore) Load(inputfile string, testdir string) error {
@@ -142,7 +140,7 @@ func (sqlstore *sqlstore) Load(inputfile string, testdir string) error {
 		return err
 	}
 
-	// use this method to comb the array for bad items before it 
+	// use this method to comb the array for bad items before it
 	// is used in the batch insert
 	array := strings.Split(string(content), "\r")
 	mindex := 0
@@ -154,7 +152,7 @@ func (sqlstore *sqlstore) Load(inputfile string, testdir string) error {
 		array[mindex] = item
 		mindex++
 	}
-	array = array[:mindex + 1]
+	array = array[:mindex+1]
 
 	// load database
 	return sqlstore.loadDB(array, dbpath)
@@ -162,7 +160,7 @@ func (sqlstore *sqlstore) Load(inputfile string, testdir string) error {
 
 func (sqlstore *sqlstore) Test(forMatch string) (bool, error) {
 
-	if sqlstore.stmt == nil {	
+	if sqlstore.stmt == nil {
 		stmt, err := sqlstore.db.Prepare(searchQuery)
 		if err != nil {
 			return false, err

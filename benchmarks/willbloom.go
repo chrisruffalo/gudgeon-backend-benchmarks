@@ -8,7 +8,7 @@ import (
 )
 
 type willbloom struct {
-	rate float64
+	rate   float64
 	filter *bloom.BloomFilter
 }
 
@@ -21,7 +21,7 @@ func (willbloom *willbloom) Load(inputfile string, testdir string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// check number of lines
 	totalLines := uint64(0)
 	scanner := bufio.NewScanner(data)

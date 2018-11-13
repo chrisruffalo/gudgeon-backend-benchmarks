@@ -1,13 +1,13 @@
 package benchmarks
 
 import (
- 	"io/ioutil"
- 	"log"
- 	"os"
- 	"path"
- 	"strings"
+	"io/ioutil"
+	"log"
+	"os"
+	"path"
+	"strings"
 
-    "github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 
 type badgerstore struct {
 	dir string
-	db *badger.DB
+	db  *badger.DB
 }
 
 func (badgerstore *badgerstore) Id() string {
@@ -28,7 +28,7 @@ func (badgerstore *badgerstore) Load(inputfile string, testdir string) error {
 	dir := path.Join(testdir, "badgerdb")
 
 	// redirect log framework output
-	f, err := os.OpenFile(path.Join(testdir,"badger-output.log"), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	f, err := os.OpenFile(path.Join(testdir, "badger-output.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
@@ -54,12 +54,12 @@ func (badgerstore *badgerstore) Load(inputfile string, testdir string) error {
 		if err != nil {
 			return err
 		}
-  		badgerstore.db = db
+		badgerstore.db = db
 		return nil
 	}
 
 	// if it does not exist open it and move on (which makes it get created and used on the next cycle)
-	db, err := badger.Open(opts)	
+	db, err := badger.Open(opts)
 
 	// go through file
 	content, err := ioutil.ReadFile(inputfile)
@@ -79,12 +79,12 @@ func (badgerstore *badgerstore) Load(inputfile string, testdir string) error {
 				if "" == item {
 					continue
 				}
-	  			err = txn.Set([]byte(item), []byte(item + "{ group1, group2, group3, group4 }"))
-	  			if err != nil {
-	  				return err
-	  			}
-	  		}
-	  		return nil
+				err = txn.Set([]byte(item), []byte(item+"{ group1, group2, group3, group4 }"))
+				if err != nil {
+					return err
+				}
+			}
+			return nil
 		})
 		if err != nil {
 			db.Close()
@@ -104,7 +104,7 @@ func (badgerstore *badgerstore) Load(inputfile string, testdir string) error {
 		return err
 	}
 	badgerstore.db = db
-	
+
 	return nil
 }
 
